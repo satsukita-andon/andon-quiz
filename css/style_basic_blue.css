@@ -266,6 +266,10 @@ div#buttons{
 	right:10px;
 	left:10px;
 	z-index:1000;
+	pointer-events: none; 
+}
+div#buttons button{
+	pointer-events: auto; 
 }
 button.button{
 	width:200px;
@@ -284,10 +288,9 @@ button#restart_button{
 	width:96% !important;
 	height:30px;
 	background: #063175;
-  	text-shadow: 2px 2px 1px #FFF, -2px 2px 1px #FFF, 2px -2px 1px #FFF, -2px -2px 2px #FFF;
   	border-radius: 10px;
   	border: #063175;
-  	color: #063175;
+  	color: white;
   	font-weight: bold;
   	box-shadow:rgba(113, 135, 164, 0.65098) 0px 0px 6px 3px;
 	-webkit-box-shadow:rgba(113, 135, 164, 0.65098) 0px 0px 6px 3px;
@@ -411,6 +414,20 @@ input[type="text"] {
 }
 input[type="text"]:focus,
 input[type="text"].focus {
+  border: solid 5px #063175;
+}
+
+
+/*テキストエリア欄のcss3化*/
+textarea {
+  padding: 10px;
+  border: solid 5px #025bb5;
+  transition: border 0.3s;
+  min-height:50%;
+  width:80%;
+}
+textarea:focus,
+textarea.focus {
   border: solid 5px #063175;
 }
 

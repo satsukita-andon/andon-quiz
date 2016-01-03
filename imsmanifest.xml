@@ -6,9 +6,9 @@
 	</metadata>
 	<organizations default="sco">
 		<organization identifier="sco">
-			<title>問題形式詰め合わせました。</title>
+			<title>北高行灯検定</title>
 			<item identifier="2" isvisible="true" identifierref="res2">
-				<title>問題形式詰め合わせました。</title>
+				<title>北高行灯検定</title>
 			</item>
 		</organization>
 	</organizations>

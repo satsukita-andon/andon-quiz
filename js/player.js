@@ -17,8 +17,8 @@ var default_config = {
         ignore_case: true,
         ignore_whitespace_count: true,
         trim: true,
-        player_width: false,
-        player_height: false,
+        width: false,
+        height: false,
         bgcolor: false,
         player_bgcolor: false,
         finish_at_result_page: true,
@@ -31,8 +31,9 @@ var default_config = {
         scale: 1,
         student_response_align: 'center',
         flexible_resultpage: false,
-        version: '4.0.0',
+        version: '4.1.1',
         remove_powered_by: false,
+        sound: true,
         messages: {
             passed: '合格！',
             failed: '不合格',
@@ -50,7 +51,8 @@ var default_config = {
         }
     },
     questions: [
-        {question: "<b>Did he go to the park yesterday?</b><br>[[koke.mp3]]", answer: "[[koke.mp3]]", type: 'sa', choice: ['[[koke.mp3]]', '[[get.mp3]]', '[[move.mp3]]',], section:0},
+        {question: "◯石◯鳥", answer: ["一","二"], label:["A", "B"], type: 'fill-in-multi', section:0},
+        {question: "◯肉◯食", answer: ["弱","強"], type: 'fill-in-multi', section:0},
         {question: "<b>There are three dice in the picture.</b><br>[[images/dice.png]]", answer: "true", type: 'true-false', feedback: ['exactly', 'There are three dice. '], section:0},
         {question: "<b>What are in the picture?</b> <br>(hint: four characters)<br>[[images/dice.png]]", answer: ['dice'], type: 'fill-in', feedback: ['exactly', 'There are three dice. '], section:0},
         {question: "<b>What are in the picture?</b> <br>[[images/dice.png]]", choice: ['dice', 'maze', 'pen'], answer: 'dice', type: 'button', section:0},
@@ -68,6 +70,8 @@ var scorm12 = {correct: 'correct', incorrect: 'wrong'},
     multi_choice_template,
     button_template,
     input_template,
+    textarea_template,
+    fill_in_multi_template,
     true_false_template,
     sort_template,
     match_template,
@@ -166,6 +170,8 @@ function save_templates() {
     multi_choice_template = $('#multi_choice').html();
     button_template = $('#button').html();
     input_template = $('#input').html();
+    fill_in_multi_template = $('#fill_in_multi').html();
+    textarea_template = $('#textarea').html();
     true_false_template = $('#true_false').html();
     sort_template = $('#sort').html();
     wordbank_template = $('#wordbank').html();
@@ -205,6 +211,8 @@ function set_scale_for_pc() {
     $('.student_response').css("width", student_response_width + changeWidth);
     $("#completion_rate_wrapper").css("top", rate_top);
     $("#start_quiz_button_not_answerd").css("bottom", review_bottom);
+    if(_cfg.settings.width) $(".page").width(_cfg.settings.width);
+    if(_cfg.settings.height)$(".page").height(_cfg.settings.height);
 }
 function load_config() {
     var i;
@@ -228,7 +236,7 @@ function prepare_questions() {
     for (i = 0; i < _cfg.questions.length; i++) {
         feedback = false;
         q = _cfg.questions[i];
-        if (q.hasOwnProperty('type') && (q.type === 'fill-in' || q.type === 'sort' || q.type === 'match' || q.type === 'wordbank' || q.type === 'fill-in-plus')) {
+        if (q.hasOwnProperty('type') && (q.type === 'fill-in' || q.type === 'textarea' || q.type === 'sort' || q.type === 'match' || q.type === 'wordbank' || q.type === 'fill-in-plus' || q.type === 'fill-in-multi')) {
             q.type = String(q.type);//Nothing to do
         } else if ((q.hasOwnProperty('type') && q.type === 'ma') || (!q.hasOwnProperty('type') && typeof q.answer === 'object')) {
             q.type = 'ma';
@@ -520,6 +528,27 @@ function display_quiz() {
         $('#choices').append(input_html);
         $('#choices .input').attr("value", cq.student_response);
         setTimeout(function () {$('#choices .input').focus(); }, 100);
+    } else if (cq.type === 'fill-in-multi'){
+        input_html = '<div class="choice">' + fill_in_multi_template + '</div>';
+        $('#choices').append(input_html);
+        $('#choices .input').hide();
+        for(var i = 0; i < cq.answer.length ; i++){
+            $('#choices .pos' + i).show();
+            if(cq.label && cq.label[i]){
+                $('#choices div.pos'+i).html(cq.label[i]);
+            }
+        }
+        if(cq.student_response){
+            for(var i = 0; i < cq.answer.length ; i++){
+                $('#choices input.input.pos'+i).val(cq.student_response[i]);
+            }
+        }
+        setTimeout(function () {$('#choices .input.pos0').focus(); }, 100);
+    } else if (cq.type === 'textarea'){
+        input_html = '<div class="choice">' + textarea_template + '</div>';
+        $('#choices').append(input_html);
+        $('#choices textarea').html(cq.student_response);
+        setTimeout(function () {$('#choices .input').focus(); }, 100);
     } else if (cq.type === 'button') {
         for (i = 0; i < cq.choice.length; i++) {
             choice_value = convert_image_tags(cq.choice[i]);
@@ -694,7 +723,7 @@ function store_answer(no_alert) {
                 }
             );
         }
-    } else if (cq.type === 'fill-in' || cq.type === 'fill-in-plus') {
+    } else if (cq.type === 'fill-in' || cq.type === 'fill-in-plus' || cq.type === 'textarea') {
         student_response = $('.input').val();
         if (student_response.length === 0) {
             if (no_alert === undefined) {
@@ -702,6 +731,13 @@ function store_answer(no_alert) {
                 return;
             }
         }
+    } else if (cq.type === 'fill-in-multi') {
+        student_response = [];
+        $('.input').each(function () {
+            if(student_response.length < cq.answer.length){
+                student_response.push($(this).val());
+            }
+        });
     } else if (cq.type === 'button' || cq.type === 'true-false') {
         student_response = last_button_value;
         last_button_value = false;
@@ -747,9 +783,9 @@ function check_answer(no_alert, no_store) {
         store_answer(no_alert);
     }
     if (no_alert !== undefined && !cq.hasOwnProperty('student_response')) {
-        if (cq.type === 'sa' || cq.type === 'ma' || cq.type === 'sort' || cq.type === 'match' || cq.type === 'wordbank') {
+        if (cq.type === 'sa' || cq.type === 'ma' || cq.type === 'sort' || cq.type === 'match' || cq.type === 'wordbank' || cq.type == 'fill-in-multi') {
             cq.student_response = [];
-        } else if (cq.type === 'fill-in' || cq.type === 'fill-in-plus') {
+        } else if (cq.type === 'fill-in' || cq.type === 'fill-in-plus' || cq.type === 'textarea') {
             cq.student_response = '';
         }
     }
@@ -766,7 +802,7 @@ function check_answer(no_alert, no_store) {
             is_correct = array_equal(student_response, cq.answer);
         } else if (cq.type === 'button' || cq.type === 'true-false') {
             is_correct = student_response === cq.answer[0];
-        } else if (cq.type === 'fill-in') {
+        } else if (cq.type === 'fill-in' || cq.type === 'textarea') {
             if (student_response.length === 0) {
                 if (no_alert === undefined) {
                     qalert(_cfg.settings.messages.not_filled);
@@ -774,6 +810,18 @@ function check_answer(no_alert, no_store) {
                 }
             }
             is_correct = array_contain([student_response], cq.answer);
+        } else if (cq.type === 'fill-in-multi') {
+            if (student_response === false || student_response.length === 0) {
+                is_correct = false;
+            } else {
+                is_correct = true;
+                for (i = 0; i < cq.answer.length ; i++) {
+                    if (student_response[i] !== cq.answer[i]) {
+                        is_correct = false;
+                        break;
+                    }
+                }
+            }
         } else if (cq.type === 'fill-in-plus') {
             if (student_response.length === 0) {
                 if (no_alert === undefined) {
@@ -993,26 +1041,32 @@ function is_mp3_audio_supported() {
 }
 function play_correct_sound() {
     'use strict';
-    if (is_mp3_audio_supported()) {
-        document.getElementById("correct_sound").play();
-    } else {
-        play('get.mp3');
+    if (_cfg.settings.sound){
+        if (is_mp3_audio_supported()) {
+            document.getElementById("correct_sound").play();
+        } else {
+            play('get.mp3');
+        }
     }
 }
 function play_incorrect_sound() {
     'use strict';
-    if (is_mp3_audio_supported()) {
-        document.getElementById("incorrect_sound").play();
-    } else {
-        play('koke.mp3');
+    if (_cfg.settings.sound){
+        if (is_mp3_audio_supported()) {
+            document.getElementById("incorrect_sound").play();
+        } else {
+            play('koke.mp3');
+        }
     }
 }
 function play_dragged_sound() {
     'use strict';
-    if (is_mp3_audio_supported()) {
-        document.getElementById("dragged_sound").play();
-    } else {
-        play('move.mp3');
+    if (_cfg.settings.sound){
+        if (is_mp3_audio_supported()) {
+            document.getElementById("dragged_sound").play();
+        } else {
+            play('move.mp3');
+        }
     }
 }
 function set_result(is_correct, no_alert) {
@@ -1446,14 +1500,18 @@ function sendCommonInteractions(q, i) {
         setValue('cmi.interactions.' + i + '.type', 'true-false');
     } else if (q.type === 'fill-in') {
         setValue('cmi.interactions.' + i + '.type', 'fill-in');
+    } else if (q.type === 'textarea') {
+        setValue('cmi.interactions.' + i + '.type', 'fill-in');
     } else if (q.type === 'fill-in-plus') {
-        setValue('cmi.interactions.' + i + '.type', 'fill-in-plus');
+        setValue('cmi.interactions.' + i + '.type', 'fill-in');
+    } else if (q.type === 'fill-in-multi') {
+        setValue('cmi.interactions.' + i + '.type', 'fill-in');
     } else if (q.type === 'sort') {
-        setValue('cmi.interactions.' + i + '.type', 'sort');
+        setValue('cmi.interactions.' + i + '.type', 'sequencing');
     } else if (q.type === 'match') {
-        setValue('cmi.interactions.' + i + '.type', 'match');
+        setValue('cmi.interactions.' + i + '.type', 'matching');
     } else if (q.type === 'wordbank') {
-        setValue('cmi.interactions.' + i + '.type', 'wordbank');
+        setValue('cmi.interactions.' + i + '.type', 'matching');
     }
     setValue('cmi.interactions.' + i + '.weighting', '1');
     setValue('cmi.interactions.' + i + '.correct_responses.0.pattern', q.answer);
@@ -1599,7 +1657,7 @@ window.document.onkeydown = function (e) {
     } else if (code >= 97 && code <= 105) {
         numkey(code - 96);
     } else if (_cfg.settings.movable) {
-        if (state === 'quiz' && ((cq.type !== 'fill-in' && cq.type !== 'fill-in-plus') || e.shiftKey || (cq.hasOwnProperty('result') && cq.result !== ''))) {
+        if (state === 'quiz' && ((cq.type !== 'fill-in' && cq.type !== 'fill-in-plus' && cq.type !== 'fill-in-multi' && cq.type !== 'textarea') || e.shiftKey || (cq.hasOwnProperty('result') && cq.result !== ''))) {
             if (code === 37) {
                 display_prev_quiz();
             } else if (code === 39) {
@@ -1624,7 +1682,6 @@ function numkey(num) {
         }
     }
 }
-
 /**
  * Utility functions
  **/
@@ -1645,7 +1702,7 @@ var merge = function (p, q) {
     },
     clone = function (obj) {
         'use strict';
-        var F = function () {console_log(''); };//TODO
+        var F = function () {/*console_log('');*/ };//TODO
         F.prototype = obj;
         return new F();
     },
